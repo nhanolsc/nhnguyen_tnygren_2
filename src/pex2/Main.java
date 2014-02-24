@@ -19,7 +19,7 @@ import javax.swing.JPanel;
 public class Main
 {
   // N > 0 must be true.  360 % N == 0 should be true for the GUI to look decent.
-  private static int N = 5;
+  private static int N = 1;
 
   /**
    * The capacity of the main water tank. This is somewhat arbitrary, but each
@@ -38,11 +38,12 @@ public class Main
 
   // Water tank current level
   private AtomicInteger currentWaterLevel = new AtomicInteger(0);
+  private Pump pump1;
 
   public Main()
   {
     // **** Create pumping station components here. ****
-
+    pump1 = new Pump(currentWaterLevel);
 
 
 
@@ -73,21 +74,21 @@ public class Main
   public void run()
   {
     long startTime = System.nanoTime();
+    pump1.run();
+    // Run until the tank is full, re-painting the GUI frequently.
+    while( true )
+    {
+      try {
+          Thread.sleep(3000);
+          System.out.println("MAIN THREAD: Current Water Level in Main is : " + Integer.toString(currentWaterLevel.get()));
+      } catch (InterruptedException e) {
+          e.printStackTrace();
+      }
+      if (currentWaterLevel.get() > CAPACITY)
+        break;
 
-//    // Run until the tank is full, re-painting the GUI frequently.
-//    while( true )
-//    {
-//      try {
-//          currentWaterLevel.getAndAdd(100);
-//          Thread.sleep(100);
-//      } catch (InterruptedException e) {
-//          e.printStackTrace();
-//      }
-//      if (currentWaterLevel.get() > CAPACITY)
-//        break;
-//
-//      panel.repaint();
-//    }
+      panel.repaint();
+    }
 
     long stopTime = System.nanoTime();
 
