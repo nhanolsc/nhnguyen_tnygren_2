@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Line2D;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -34,6 +35,9 @@ public class Main
   // GUI components.
   private JFrame frame;
   private JPanel panel;
+
+  // Water tank current level
+  private AtomicInteger currentWaterLevel = new AtomicInteger(0);
 
   public Main()
   {
@@ -70,11 +74,20 @@ public class Main
   {
     long startTime = System.nanoTime();
 
-    // Run until the tank is full, re-painting the GUI frequently.
-    //while( true )
-    //{
-    //  panel.repaint();
-    //}
+//    // Run until the tank is full, re-painting the GUI frequently.
+//    while( true )
+//    {
+//      try {
+//          currentWaterLevel.getAndAdd(100);
+//          Thread.sleep(100);
+//      } catch (InterruptedException e) {
+//          e.printStackTrace();
+//      }
+//      if (currentWaterLevel.get() > CAPACITY)
+//        break;
+//
+//      panel.repaint();
+//    }
 
     long stopTime = System.nanoTime();
 
@@ -220,7 +233,7 @@ public class Main
       // Note the last parameter to fillRect is based on the current level of the tank.
       g2.setColor( Color.WHITE );
       // **** Replace the 20000 in the line below with the current level of the water tank! ****
-      g2.fillRect( -tankWidth/2, -tankHeight/2, tankWidth, tankHeight - tankHeight * 20000 / CAPACITY );
+      g2.fillRect( -tankWidth/2, -tankHeight/2, tankWidth, tankHeight - tankHeight * currentWaterLevel.get() / CAPACITY );
       // Outline the tank so it looks pretty.
       g2.setColor( Color.BLACK );
       g2.setStroke( stroke4 );
