@@ -3,6 +3,7 @@ package pex2;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -16,9 +17,13 @@ public class Pump implements Runnable {
     // Used for pump ID
     private static int pumpNumber = 0;
 
-    // Shared Variables
+    // Shared Variables with Main
     private AtomicInteger currentWaterLevel;
     private ArrayList<Color> pumpColor;
+
+    // Used for the return code of both power request threads
+    private boolean canUseLeft = false;
+    private boolean canUseRight = false;
 
     // Statistics
     private int gallonsPumped = 0;
@@ -48,60 +53,68 @@ public class Pump implements Runnable {
         while (pumping) {
 
             if (pumpState == PumpState.READY) {
-
-                try {
-//                    System.out.println("\nREADY STATE: current water level is " + Integer.toString(currentWaterLevel.get()) + "\n");
-                    Thread.sleep(500);
-                    pumpState = PumpState.PUMPING;
-                    pumpColor.add(id, Color.BLUE);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
+                ready();
             } else if (pumpState == PumpState.WAITING) {
                 // Throw out two threads to request power
 
             } else if (pumpState == PumpState.PUMPING) {
                 cycles++;
                 pumpTime = ThreadLocalRandom.current().nextInt(2,6) * 1000;
-                int waterAmountToPump = ThreadLocalRandom.current().nextInt(20, 51) * 100;
-//                System.out.println("\nPUMPING STATE: pumptime of: " + Integer.toString(pumpTime) + " and amount to pump: " + Integer.toString(waterAmountToPump) + "\n");
-                int waterPumped = 0;
-                try {
-                    // Pump!
-                    while (waterPumped < waterAmountToPump) {
-                        // Check to make sure we aren't over capacity
-                        if (currentWaterLevel.get() >= Main.CAPACITY) {
-                            pumping = false;
-                            break;
-                        }
-                        // Pump water
-                        currentWaterLevel.getAndAdd(waterAmountToPump / PUMPING_INCREMENTS);
-                        waterPumped += waterAmountToPump / PUMPING_INCREMENTS;
-                        gallonsPumped += waterAmountToPump / PUMPING_INCREMENTS;
-                        // Wait
-                        Thread.sleep( pumpTime / PUMPING_INCREMENTS);
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
+                pump();
                 pumpState = PumpState.CLEANING;
                 pumpColor.add(id, Color.RED);
             } else if (pumpState == PumpState.CLEANING) {
-
-                try {
-//                    System.out.println("CLEANING STATE: cleaning for " + Integer.toString(pumpTime));
-                    Thread.sleep(pumpTime);
-                    pumpState = PumpState.READY;
-                    pumpColor.add(id, Color.GREEN);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                clean();
             }
         }
 
         printStatistics();
+    }
+
+    public void ready() {
+        try {
+//                    System.out.println("\nREADY STATE: current water level is " + Integer.toString(currentWaterLevel.get()) + "\n");
+            Thread.sleep(500);
+            pumpState = PumpState.PUMPING;
+            pumpColor.add(id, Color.BLUE);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void pump() {
+        int waterAmountToPump = ThreadLocalRandom.current().nextInt(20, 51) * 100;
+//                System.out.println("\nPUMPING STATE: pumptime of: " + Integer.toString(pumpTime) + " and amount to pump: " + Integer.toString(waterAmountToPump) + "\n");
+        int waterPumped = 0;
+        try {
+            // Pump!
+            while (waterPumped < waterAmountToPump) {
+                // Check to make sure we aren't over capacity
+                if (currentWaterLevel.get() >= Main.CAPACITY) {
+                    pumping = false;
+                    break;
+                }
+                // Pump water
+                currentWaterLevel.getAndAdd(waterAmountToPump / PUMPING_INCREMENTS);
+                waterPumped += waterAmountToPump / PUMPING_INCREMENTS;
+                gallonsPumped += waterAmountToPump / PUMPING_INCREMENTS;
+                // Wait
+                Thread.sleep( pumpTime / PUMPING_INCREMENTS);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void clean() {
+        try {
+//                    System.out.println("CLEANING STATE: cleaning for " + Integer.toString(pumpTime));
+            Thread.sleep(pumpTime);
+            pumpState = PumpState.READY;
+            pumpColor.add(id, Color.GREEN);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void printStatistics() {
