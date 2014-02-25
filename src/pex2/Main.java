@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Line2D;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
@@ -38,13 +39,18 @@ public class Main
 
   // Water tank current level
   private AtomicInteger currentWaterLevel = new AtomicInteger(0);
-  private Pump pump1;
+  private ArrayList<Thread> pumps = new ArrayList<Thread>();
+  private ArrayList<Color> pumpColors = new ArrayList<Color>();
 
   public Main()
   {
     // **** Create pumping station components here. ****
-    pump1 = new Pump(currentWaterLevel);
-
+    for (int i = 0; i < N; i++) {
+        pumpColors.add(Color.GREEN);
+    }
+    for (int i = 0; i < N; i++) {
+        pumps.add(new Thread(new Pump(currentWaterLevel, pumpColors)));
+    }
 
 
 
@@ -74,35 +80,47 @@ public class Main
   public void run()
   {
     long startTime = System.nanoTime();
-    pump1.run();
+    System.out.println("Starting all pumps...");
+    for (int i = 0; i < N; i++) {
+        pumps.get(i).start();
+    }
     // Run until the tank is full, re-painting the GUI frequently.
     while( true )
     {
-      try {
-          Thread.sleep(3000);
-          System.out.println("MAIN THREAD: Current Water Level in Main is : " + Integer.toString(currentWaterLevel.get()));
-      } catch (InterruptedException e) {
-          e.printStackTrace();
+//      try {
+//          Thread.sleep(3000);
+//          System.out.println("MAIN THREAD: Current Water Level in Main is : " + Integer.toString(currentWaterLevel.get()));
+//      } catch (InterruptedException e) {
+//          e.printStackTrace();
+//      }
+      if (currentWaterLevel.get() > CAPACITY) {
+          System.out.println("Water tank has reached Capacity!");
+          break;
       }
-      if (currentWaterLevel.get() > CAPACITY)
-        break;
 
       panel.repaint();
     }
-
     long stopTime = System.nanoTime();
+
+    for (int i = 0; i < N; i++) {
+        try {
+            pumps.get(i).join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     // Make the output look pretty.
     java.text.NumberFormat nf = java.text.NumberFormat.getInstance();
     nf.setGroupingUsed( true );
-    System.out.printf( "%s nanoseconds.\n", nf.format( stopTime - startTime ) );
+    System.out.printf( "Tank contains %d gallons, pumped in %s nanoseconds.\n", currentWaterLevel.get(), nf.format( stopTime - startTime ) );
   }
 
   // JPanel that shows the current state of the pumping station.
   class MainPanel extends JPanel
   {
     // These colors correspond to the PumpState values Ready, Waiting, Pumping, Cleaning.
-    private final Color pumpColors[] = { Color.GREEN, Color.YELLOW, Color.BLUE, Color.RED };
+//    private final Color pumpColors[] = { Color.GREEN, Color.YELLOW, Color.BLUE, Color.RED };
 
     // Since the paint method will be called frequently, save these graphic items
     // to avoid re-creating/re-allocating and killing the garbage collector.
@@ -190,12 +208,12 @@ public class Main
         g2.setColor( Color.BLACK );
         g2.draw( pipe );
         g2.setStroke( stroke6 );
-        g2.setColor( pumpColors[ (int)(Math.random() * pumpColors.length) ] );  // **** Set color based on the pumps/power supplies! ****
+        g2.setColor( pumpColors.get(i) );  // **** Set color based on the pumps/power supplies! ****
         g2.draw( pipe );
 
         // The actual pump, drawn last so it will cover the ends of the
         // power cords and the pipe.
-        g2.setColor( pumpColors[ (int)(Math.random() * pumpColors.length) ] );  // **** Set color based on the pumps/power supplies! ****
+        g2.setColor( pumpColors.get(i) );  // **** Set color based on the pumps/power supplies! ****
         g2.fillOval( -pumpSize/2, -PANEL_SIZE/2, pumpSize, pumpSize );
         // Outline the pump so it looks pretty.
         g2.setStroke( stroke2 );
