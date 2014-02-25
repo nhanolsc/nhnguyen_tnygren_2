@@ -41,8 +41,8 @@ public class Main
     private AtomicInteger currentWaterLevel = new AtomicInteger(0);
 
     // Pumps array and corresponding pump colors array
-    private ArrayList<Thread> pumps = new ArrayList<Thread>();
-    private ArrayList<Color> pumpColors = new ArrayList<Color>();
+    private ArrayList<Pump> pumps = new ArrayList<Pump>();
+    private ArrayList<Thread> pumpThreads = new ArrayList<Thread>();
 
     // Power supplies array
     private ArrayList<Power> powerSupplies = new ArrayList<Power>();
@@ -50,19 +50,22 @@ public class Main
     public Main()
     {
         // **** Create pumping station components here. ****
-        // Create pump color array
-        for (int i = 0; i < N; i++) {
-            pumpColors.add(Color.GREEN);
-        }
         // Create power supplies
         for (int i = 0; i < N; i++) {
             powerSupplies.add(new Power());
         }
         // Create pumps
         for (int i = 0; i < N; i++) {
-            pumps.add(new Thread(new Pump(currentWaterLevel, pumpColors, powerSupplies.get(i), powerSupplies.get((i + 4) % N))));
+            pumps.add(new Pump(currentWaterLevel, powerSupplies.get(i), powerSupplies.get((i + 4) % N)));
+        }
+        // Create pump threads
+        for (int i = 0; i < N; i++) {
+            pumpThreads.add(new Thread(pumps.get(i)));
         }
 
+        for (Pump p : pumps) {
+            p.printPowerSupplies();
+        }
 
         // Create and show the GUI.
         frame = new JFrame( "PEX 2" );
@@ -91,7 +94,7 @@ public class Main
     {
         long startTime = System.nanoTime();
         System.out.println("Starting all pumps...");
-        for (Thread pump : pumps) {
+        for (Thread pump : pumpThreads) {
             pump.start();
         }
         // Run until the tank is full, re-painting the GUI frequently.
@@ -114,7 +117,7 @@ public class Main
 
         for (int i = 0; i < N; i++) {
             try {
-                pumps.get(i).join();
+                pumpThreads.get(i).join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -218,12 +221,12 @@ public class Main
                 g2.setColor( Color.BLACK );
                 g2.draw( pipe );
                 g2.setStroke( stroke6 );
-                g2.setColor( pumpColors.get(i) );  // **** Set color based on the pumps/power supplies! ****
+                g2.setColor( pumps.get(i).getPumpColor() );  // **** Set color based on the pumps/power supplies! ****
                 g2.draw( pipe );
 
                 // The actual pump, drawn last so it will cover the ends of the
                 // power cords and the pipe.
-                g2.setColor( pumpColors.get(i) );  // **** Set color based on the pumps/power supplies! ****
+                g2.setColor( pumps.get(i).getPumpColor() );  // **** Set color based on the pumps/power supplies! ****
                 g2.fillOval( -pumpSize/2, -PANEL_SIZE/2, pumpSize, pumpSize );
                 // Outline the pump so it looks pretty.
                 g2.setStroke( stroke2 );

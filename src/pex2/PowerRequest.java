@@ -21,10 +21,12 @@ public class PowerRequest implements Runnable{
     private int requesterId;
 
 
-    public PowerRequest(Power requestedPowerNode, int requesterId, int canUsePower) {
+    public PowerRequest(Power requestedPowerNode, int requesterId) {
+        System.out.println();
+        System.out.println("STARTING POWER REQUEST THREAD FOR REQUESTER " + requesterId + " ON POWER NODE: " + requestedPowerNode.getId());
+        System.out.println();
         this.requestedPowerNode = requestedPowerNode;
         this.requesterId = requesterId;
-        this.requestStatus = canUsePower;
     }
 
     @Override
@@ -32,11 +34,19 @@ public class PowerRequest implements Runnable{
         while(numberOfRequests > 0) {
             if (requestedPowerNode.canReceivePower(requesterId)) {
                 requestStatus = REQUEST_SUCCESS;
+                break;
             } else {
                 sleep();
                 numberOfRequests--;
             }
         }
+        System.out.println();
+        System.out.println("REQUEST FOR POWER FINISHED FOR " + requesterId + " ON POWER NODE: " + requestedPowerNode.getId());
+        System.out.println();
+    }
+
+    public int getRequestStatus() {
+        return requestStatus;
     }
 
     public void sleep() {

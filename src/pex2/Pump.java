@@ -18,15 +18,10 @@ public class Pump implements Runnable {
 
     // Shared Variables with Main
     private AtomicInteger currentWaterLevel;
-    private ArrayList<Color> pumpColor;
 
     // This pump's left and right power supplies
     private Power leftPower;
     private Power rightPower;
-
-    // Used for the return code of both power request threads
-    private int canUseLeft = PowerRequest.REQUEST_DENIED;
-    private int canUseRight = PowerRequest.REQUEST_DENIED;
 
     // Statistics
     private int gallonsPumped = 0;
@@ -44,11 +39,10 @@ public class Pump implements Runnable {
     // Stopping variable
     private boolean pumping = true;
 
-    public Pump(AtomicInteger currentWaterLevel, ArrayList<Color> pumpColor, Power leftPump, Power rightPump) {
+    public Pump(AtomicInteger currentWaterLevel, Power leftPower, Power rightPower) {
         this.currentWaterLevel = currentWaterLevel;
-        this.pumpColor = pumpColor;
-        this.leftPower = leftPump;
-        this.rightPower = rightPump;
+        this.leftPower = leftPower;
+        this.rightPower = rightPower;
         id = pumpNumber++;
     }
 
@@ -65,10 +59,10 @@ public class Pump implements Runnable {
                 cycles++;
                 pumpTime = ThreadLocalRandom.current().nextInt(2,6) * 1000;
                 pump();
-//                leftPower.releasePower();
-//                rightPower.releasePower();
+                System.out.println("PUMP: " + id + " IS RELEASING POWER");
+                leftPower.releasePower();
+                rightPower.releasePower();
                 pumpState = PumpState.CLEANING;
-                pumpColor.add(id, Color.RED);
             } else if (pumpState == PumpState.CLEANING) {
                 clean();
             }
@@ -81,28 +75,43 @@ public class Pump implements Runnable {
         try {
 //                    System.out.println("\nREADY STATE: current water level is " + Integer.toString(currentWaterLevel.get()) + "\n");
             Thread.sleep(500);
-            // TODO: change this
-            pumpState = PumpState.PUMPING;
-            pumpColor.add(id, Color.BLUE);
+            pumpState = PumpState.WAITING;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     public void waitForPower() {
-        Thread left = new Thread(new PowerRequest(leftPower, id, canUseLeft));
-        Thread right = new Thread(new PowerRequest(rightPower, id, canUseRight));
+        System.out.println();
+        System.out.println("PUMP: " + id + " IS WAITING FOR POWER FROM " + leftPower.getId() + " AND " + rightPower.getId());
+        PowerRequest left = new PowerRequest(leftPower, id);
+        PowerRequest right = new PowerRequest(rightPower, id);
 
-        left.start();
-        right.start();
+        Thread leftThread = new Thread(left);
+        Thread rightThread = new Thread(right);
+        leftThread.start();
+        rightThread.start();
 
         try {
-            left.join();
-            right.join();
+            leftThread.join();
+            rightThread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        System.out.println();
+        System.out.println("PUMP: " + id);
+        System.out.println("PUMP : " + id + " LEFT REQUEST: " + left.getRequestStatus());
+        System.out.println("PUMP : " + id + " RIGHT REQUEST: " + right.getRequestStatus());
+        System.out.println();
 
+        if (left.getRequestStatus() == PowerRequest.REQUEST_SUCCESS && right.getRequestStatus() == PowerRequest.REQUEST_SUCCESS) {
+            pumpState = PumpState.PUMPING;
+        } else {
+            pumpState = PumpState.READY;
+            System.out.println("RELEASING POWER FROM PUMP: " + id);
+            leftPower.releasePower();
+            rightPower.releasePower();
+        }
 
     }
 
@@ -135,10 +144,29 @@ public class Pump implements Runnable {
 //                    System.out.println("CLEANING STATE: cleaning for " + Integer.toString(pumpTime));
             Thread.sleep(pumpTime);
             pumpState = PumpState.READY;
-            pumpColor.add(id, Color.GREEN);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public Color getPumpColor() {
+        switch(pumpState) {
+            case WAITING:
+                return Color.YELLOW;
+            case PUMPING:
+                return Color.BLUE;
+            case CLEANING:
+                return Color.RED;
+            default:
+                return Color.GREEN;
+        }
+    }
+
+    public void printPowerSupplies() {
+        System.out.println("PUMP: " + id);
+        System.out.println("LEFT POWER ID: " + leftPower.getId());
+        System.out.println("RIGHT POWER ID: " + rightPower.getId());
+        System.out.println();
     }
 
     public void printStatistics() {

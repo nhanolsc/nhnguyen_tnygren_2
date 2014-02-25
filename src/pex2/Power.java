@@ -16,7 +16,7 @@ public class Power {
     private static int powerNumber = 0;
 
     // Shared Variables with PowerRequest
-    private AtomicInteger user = new AtomicInteger(NOT_IN_USE);
+    private int user = NOT_IN_USE;
 
     // User id to return correct color
     private int requesterId = -1;
@@ -33,9 +33,15 @@ public class Power {
         id = powerNumber++;
     }
 
-    public boolean canReceivePower(int requesterId) {
-        if (user.get() == NOT_IN_USE) {
-            user.set(requesterId);
+    public synchronized boolean canReceivePower(int requesterId) {
+        System.out.println();
+        System.out.println("REQUESTING PUMP: " + requesterId + " FROM POWER SUPPLY " + id);
+        System.out.println("CURRENT USER: " + user + " REQUESTER " + requesterId);
+        if (user == NOT_IN_USE) {
+            user = requesterId;
+            this.requesterId = requesterId;
+            System.out.println("RECEIVED ACCESS: " + requesterId + " FROM POWER SUPPLY " + id);
+            System.out.println();
             if (requesterId == id) {
                 rightColor = Color.ORANGE;
             } else {
@@ -43,6 +49,8 @@ public class Power {
             }
             return true;
         } else {
+            System.out.println("POWER: " + id + "-----ACCESS DENIED: " + requesterId);
+            System.out.println();
             return false;
         }
     }
@@ -52,8 +60,11 @@ public class Power {
         leftColor = Color.LIGHT_GRAY;
     }
 
-    public void releasePower() {
-        user.set(NOT_IN_USE);
+    public synchronized void releasePower() {
+        System.out.println();
+        System.out.println("POWER: " + id + "---------PUMP : " + requesterId + " HAS RELEASED POWER");
+        System.out.println();
+        user = NOT_IN_USE;
         requesterId = -1;
         resetColors();
     }
@@ -64,5 +75,9 @@ public class Power {
         } else {
             return rightColor;
         }
+    }
+
+    public int getId() {
+        return id;
     }
 }
