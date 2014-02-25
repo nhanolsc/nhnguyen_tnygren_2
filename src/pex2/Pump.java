@@ -3,7 +3,6 @@ package pex2;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -21,9 +20,13 @@ public class Pump implements Runnable {
     private AtomicInteger currentWaterLevel;
     private ArrayList<Color> pumpColor;
 
+    // This pump's left and right power supplies
+    private Power leftPower;
+    private Power rightPower;
+
     // Used for the return code of both power request threads
-    private boolean canUseLeft = false;
-    private boolean canUseRight = false;
+    private int canUseLeft = PowerRequest.REQUEST_DENIED;
+    private int canUseRight = PowerRequest.REQUEST_DENIED;
 
     // Statistics
     private int gallonsPumped = 0;
@@ -41,9 +44,11 @@ public class Pump implements Runnable {
     // Stopping variable
     private boolean pumping = true;
 
-    public Pump(AtomicInteger currentWaterLevel, ArrayList<Color> pumpColor) {
+    public Pump(AtomicInteger currentWaterLevel, ArrayList<Color> pumpColor, Power leftPump, Power rightPump) {
         this.currentWaterLevel = currentWaterLevel;
         this.pumpColor = pumpColor;
+        this.leftPower = leftPump;
+        this.rightPower = rightPump;
         id = pumpNumber++;
     }
 
@@ -55,12 +60,13 @@ public class Pump implements Runnable {
             if (pumpState == PumpState.READY) {
                 ready();
             } else if (pumpState == PumpState.WAITING) {
-                // Throw out two threads to request power
-
+                waitForPower();
             } else if (pumpState == PumpState.PUMPING) {
                 cycles++;
                 pumpTime = ThreadLocalRandom.current().nextInt(2,6) * 1000;
                 pump();
+//                leftPower.releasePower();
+//                rightPower.releasePower();
                 pumpState = PumpState.CLEANING;
                 pumpColor.add(id, Color.RED);
             } else if (pumpState == PumpState.CLEANING) {
@@ -75,11 +81,29 @@ public class Pump implements Runnable {
         try {
 //                    System.out.println("\nREADY STATE: current water level is " + Integer.toString(currentWaterLevel.get()) + "\n");
             Thread.sleep(500);
+            // TODO: change this
             pumpState = PumpState.PUMPING;
             pumpColor.add(id, Color.BLUE);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public void waitForPower() {
+        Thread left = new Thread(new PowerRequest(leftPower, id, canUseLeft));
+        Thread right = new Thread(new PowerRequest(rightPower, id, canUseRight));
+
+        left.start();
+        right.start();
+
+        try {
+            left.join();
+            right.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     public void pump() {
