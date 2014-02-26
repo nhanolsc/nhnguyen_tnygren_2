@@ -9,7 +9,10 @@ public class Power {
     private int user = NOT_IN_USE;
 
     
-    // Check who can receive power.
+    /* Check who can receive power.
+     * @param requesterId  the id of the pump requesting for power
+     * @return returns true if the user is not using the power and false otherwise
+     */
     public synchronized boolean canReceivePower(int requesterId) {
         if (user == NOT_IN_USE) {
             user = requesterId;

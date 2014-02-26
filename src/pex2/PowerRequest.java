@@ -1,7 +1,8 @@
 package pex2;
 
 public class PowerRequest implements Runnable{
-
+	
+	// The max number of that a pump can request for power.
     public static final int MAX_NUMBER_REQUESTS = 10;
 
     // ID of power supply to be returned to requester
@@ -16,14 +17,14 @@ public class PowerRequest implements Runnable{
     // Requester id
     private int requesterId;
 
-
+    //Constructor
     public PowerRequest(Power requestedPowerNode, int requesterId) {
         this.requestedPowerNode = requestedPowerNode;
         this.requesterId = requesterId;
     }
 
     
-    /**
+    /*
     *Thread can ask for a max of 10 request and has to wait one-tenth of a second between 
     *each request.
     *If request is granted, it will break this loop 
@@ -40,11 +41,6 @@ public class PowerRequest implements Runnable{
             }
         }
     }
-
-    public int getUserId() {
-        return userId;
-    }
-    
     // Thread wait one-tenth of a second before making another request
     public void sleep() {
         try {
@@ -53,4 +49,13 @@ public class PowerRequest implements Runnable{
             e.printStackTrace();
         }
     }
+    
+    
+    /*---------------------------Getters-----------------------------*/
+
+    public int getUserId() {
+        return userId;
+    }
+    
+
 }

@@ -87,7 +87,11 @@ public class Pump implements Runnable {
 		printStatistics();
 	}
 
-	// This method get passed in the amount of time that the pump has to wait
+	/* This method get passed in the amount of time that the pump has to wait
+	 * 
+	 * @param waitTime the amount of time the pump has to wait before it can starts doing stuff
+	 */
+	
 	public void sleep(int waitTime) {
 		try {
 			Thread.sleep(waitTime);
@@ -160,6 +164,15 @@ public class Pump implements Runnable {
 	public boolean waterOverflow() {
 		return currentWaterLevel.get() >= Main.CAPACITY;
 	}
+
+	//Display how many gallons each pump pumped and how many cycles it ran 
+	public void printStatistics() {
+		System.out.printf("Pump %d pumped %d gallons in %d cycles\n", id, gallonsPumped, cycles);
+	}
+	
+	
+	
+	//-----------------------------Getters and Setters---------------------------------
 	
 	public void releasePower() {
 		hasLeftPower = false;
@@ -173,7 +186,9 @@ public class Pump implements Runnable {
 		pumpState = PumpState.READY;
 	}
 	
-	// Color coded the states of the pump, by default all Pumps start with READY state which is GREEN. 
+	/* Color coded the states of the pump, by default all Pumps start with READY state which is GREEN.
+	 * @return returns the correct color for each specified states.
+	 */
 	public Color getPumpColor() {
 		switch(pumpState) {
 		case WAITING:
@@ -187,7 +202,9 @@ public class Pump implements Runnable {
 		}
 	}
 
-	// Color code for the left power wires.  If the wire has power its ORANGE otherwise its LIGHT_GRAY
+	/* Color code for the left power wires.  
+	 * @return returns ORANGE if the wire has power and LIGHT_GRAY otherwise
+	 */
 	public Color getLeftPowerColor() {
 		if (hasLeftPower) {
 			return Color.ORANGE;
@@ -196,17 +213,14 @@ public class Pump implements Runnable {
 		}
 	}
 
-	// Color code for the left power wires.  If the wire has power its ORANGE otherwise its LIGHT_GRAY
+	/* Color code for the left power wires.  If the wire has power its ORANGE otherwise its LIGHT_GRAY
+	 *  @return returns ORANGE if the wire has power and LIGHT_GRAY otherwise
+	 */
 	public Color getRightPowerColor() {
 		if (hasRightPower) {
 			return Color.ORANGE;
 		} else {
 			return Color.LIGHT_GRAY;
 		}
-	}
-
-	//Display how many gallons each pump pumped and how many cycles it ran 
-	public void printStatistics() {
-		System.out.printf("Pump %d pumped %d gallons in %d cycles\n", id, gallonsPumped, cycles);
 	}
 }
