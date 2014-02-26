@@ -8,6 +8,8 @@ public class Power {
     // Shared Variables with PowerRequest
     private int user = NOT_IN_USE;
 
+    
+    // Check who can receive power.
     public synchronized boolean canReceivePower(int requesterId) {
         if (user == NOT_IN_USE) {
             user = requesterId;
@@ -17,6 +19,7 @@ public class Power {
         }
     }
 
+    
     public synchronized void releasePower(int pumpId) {
         if (pumpId == user) {
             user = NOT_IN_USE;

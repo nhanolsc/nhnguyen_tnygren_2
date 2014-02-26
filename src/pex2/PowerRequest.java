@@ -22,6 +22,12 @@ public class PowerRequest implements Runnable{
         this.requesterId = requesterId;
     }
 
+    
+    /**
+    *Thread can ask for a max of 10 request and has to wait one-tenth of a second between 
+    *each request.
+    *If request is granted, it will break this loop 
+    */
     @Override
     public void run() {
         while(numberOfRequests > 0) {
@@ -38,7 +44,8 @@ public class PowerRequest implements Runnable{
     public int getUserId() {
         return userId;
     }
-
+    
+    // Thread wait one-tenth of a second before making another request
     public void sleep() {
         try {
             Thread.sleep(100);

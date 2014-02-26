@@ -89,7 +89,8 @@ public class Main
     public void run()
     {
         try {
-            // Wait until the GUI is set up before starting the simulation
+            // Wait until the GUI is set up before starting the simulation.
+        	//  This make sure that all pump start in the READY state (GREEN)
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
