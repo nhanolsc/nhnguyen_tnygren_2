@@ -10,7 +10,6 @@ import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class Pump implements Runnable
 {
     // Pumping increments
