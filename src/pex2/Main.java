@@ -51,15 +51,18 @@ public class Main
     {
         // **** Create pumping station components here. ****
         // Create power supplies
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N; i++)
+        {
             powerSupplies.add(new Power());
         }
         // Create pumps
-        for (int i = 0; i < N; i++) {
-            pumps.add(new Pump(currentWaterLevel, powerSupplies.get(i), powerSupplies.get((i + 4) % N)));
+        for (int i = 0; i < N; i++)
+        {
+            pumps.add(new Pump(currentWaterLevel, powerSupplies.get(i), powerSupplies.get((i + N-1) % N)));
         }
         // Create pump threads
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N; i++)
+        {
             pumpThreads.add(new Thread(pumps.get(i)));
         }
 
@@ -88,18 +91,21 @@ public class Main
      */
     public void run()
     {
-        try {
+        try
+        {
             // Wait until the GUI is set up before starting the simulation.
         	//  This make sure that all pump start in the READY state (GREEN)
             Thread.sleep(2000);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e)
+        {
             e.printStackTrace();
         }
         // Start of simulation
         long startTime = System.nanoTime();
 
         System.out.println("Starting all pumps...");
-        for (Thread pump : pumpThreads) {
+        for (Thread pump : pumpThreads)
+        {
             pump.start();
         }
 
@@ -113,10 +119,13 @@ public class Main
         System.out.println("Water tank has reached Capacity!");
 
         // Wait for the threads to finish and display their statistics
-        for (Thread pump : pumpThreads) {
-            try {
+        for (Thread pump : pumpThreads)
+        {
+            try
+            {
                 pump.join();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException e)
+            {
                 e.printStackTrace();
             }
         }
