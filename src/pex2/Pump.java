@@ -1,17 +1,14 @@
 package pex2;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by nhhnMAC on 2/24/14.
- */
 public class Pump implements Runnable {
 
     // Pumping increments
     public static final int PUMPING_INCREMENTS = 100;
+    public static final int READY_STATE_WAIT_TIME = 500;
 
     // Used for pump ID
     private static int pumpNumber = 0;
@@ -22,6 +19,10 @@ public class Pump implements Runnable {
     // This pump's left and right power supplies
     private Power leftPower;
     private Power rightPower;
+
+    // Has power
+    private boolean hasLeftPower = false;
+    private boolean hasRightPower = false;
 
     // Statistics
     private int gallonsPumped = 0;
@@ -49,81 +50,91 @@ public class Pump implements Runnable {
     @Override
     public void run() {
         System.out.printf("Starting pump %d...\n", id);
+
         while (pumping) {
 
+            if (waterOverflow()) {
+                break;
+            }
+
             if (pumpState == PumpState.READY) {
-                ready();
+                sleep(READY_STATE_WAIT_TIME);               // Wait for half a second
+                pumpState = PumpState.WAITING;
+
             } else if (pumpState == PumpState.WAITING) {
                 waitForPower();
+
             } else if (pumpState == PumpState.PUMPING) {
+                // Pumping
                 cycles++;
-                pumpTime = ThreadLocalRandom.current().nextInt(2,6) * 1000;
+                pumpTime = ThreadLocalRandom.current().nextInt(20,51) * 100;    // Get the next random pump time
                 pump();
-                System.out.println("PUMP: " + id + " IS RELEASING POWER");
-                leftPower.releasePower();
-                rightPower.releasePower();
+                // Release all power
+                releasePower();                 // Resets hasLeftPower and hasRightPower for GUI updates
+                leftPower.releasePower(id);
+                rightPower.releasePower(id);
                 pumpState = PumpState.CLEANING;
-            } else if (pumpState == PumpState.CLEANING) {
-                clean();
+                // Cleaning
+                sleep(pumpTime);               // Sleep for as long as the pump time for cleaning
+                pumpState = PumpState.READY;
             }
         }
-
+        // Tank is filled
+        resetPump();
         printStatistics();
     }
 
-    public void ready() {
+    public void sleep(int waitTime) {
         try {
-//                    System.out.println("\nREADY STATE: current water level is " + Integer.toString(currentWaterLevel.get()) + "\n");
-            Thread.sleep(500);
-            pumpState = PumpState.WAITING;
+            Thread.sleep(waitTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     public void waitForPower() {
-        System.out.println();
-        System.out.println("PUMP: " + id + " IS WAITING FOR POWER FROM " + leftPower.getId() + " AND " + rightPower.getId());
         PowerRequest left = new PowerRequest(leftPower, id);
         PowerRequest right = new PowerRequest(rightPower, id);
 
         Thread leftThread = new Thread(left);
         Thread rightThread = new Thread(right);
+
         leftThread.start();
         rightThread.start();
 
-        try {
-            leftThread.join();
-            rightThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        // Used to update power supply connections so they can be drawn correctly
+        while(leftThread.isAlive() || rightThread.isAlive()) {
+            if (id == leftPower.getUserId()) {
+                hasLeftPower = true;
+            }
+            if (id == rightPower.getUserId()) {
+                hasRightPower = true;
+            }
         }
-        System.out.println();
-        System.out.println("PUMP: " + id);
-        System.out.println("PUMP : " + id + " LEFT REQUEST: " + left.getRequestStatus());
-        System.out.println("PUMP : " + id + " RIGHT REQUEST: " + right.getRequestStatus());
-        System.out.println();
 
-        if (left.getRequestStatus() == PowerRequest.REQUEST_SUCCESS && right.getRequestStatus() == PowerRequest.REQUEST_SUCCESS) {
+        // Pump has required power sources
+        if (left.getUserId() == id && right.getUserId() == id) {
+            hasLeftPower = true;
+            hasRightPower = true;
             pumpState = PumpState.PUMPING;
+        // Did not get required power, release resources
         } else {
             pumpState = PumpState.READY;
-            System.out.println("RELEASING POWER FROM PUMP: " + id);
-            leftPower.releasePower();
-            rightPower.releasePower();
+            releasePower();                 // Resets hasLeftPower and hasRightPower for GUI updates
+            leftPower.releasePower(id);
+            rightPower.releasePower(id);
         }
 
     }
 
     public void pump() {
-        int waterAmountToPump = ThreadLocalRandom.current().nextInt(20, 51) * 100;
-//                System.out.println("\nPUMPING STATE: pumptime of: " + Integer.toString(pumpTime) + " and amount to pump: " + Integer.toString(waterAmountToPump) + "\n");
+        int waterAmountToPump = pumpTime;
         int waterPumped = 0;
         try {
             // Pump!
             while (waterPumped < waterAmountToPump) {
                 // Check to make sure we aren't over capacity
-                if (currentWaterLevel.get() >= Main.CAPACITY) {
+                if (waterOverflow()) {
                     pumping = false;
                     break;
                 }
@@ -139,14 +150,19 @@ public class Pump implements Runnable {
         }
     }
 
-    public void clean() {
-        try {
-//                    System.out.println("CLEANING STATE: cleaning for " + Integer.toString(pumpTime));
-            Thread.sleep(pumpTime);
-            pumpState = PumpState.READY;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public boolean waterOverflow() {
+        return currentWaterLevel.get() >= Main.CAPACITY;
+    }
+
+    public void releasePower() {
+        hasLeftPower = false;
+        hasRightPower = false;
+    }
+
+    public void resetPump() {
+        hasLeftPower = false;
+        hasRightPower = false;
+        pumpState = PumpState.READY;
     }
 
     public Color getPumpColor() {
@@ -162,11 +178,20 @@ public class Pump implements Runnable {
         }
     }
 
-    public void printPowerSupplies() {
-        System.out.println("PUMP: " + id);
-        System.out.println("LEFT POWER ID: " + leftPower.getId());
-        System.out.println("RIGHT POWER ID: " + rightPower.getId());
-        System.out.println();
+    public Color getLeftPowerColor() {
+        if (hasLeftPower) {
+            return Color.ORANGE;
+        } else {
+            return Color.LIGHT_GRAY;
+        }
+    }
+
+    public Color getRightPowerColor() {
+        if (hasRightPower) {
+            return Color.ORANGE;
+        } else {
+            return Color.LIGHT_GRAY;
+        }
     }
 
     public void printStatistics() {

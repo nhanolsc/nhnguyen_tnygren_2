@@ -20,7 +20,7 @@ import javax.swing.JPanel;
 public class Main
 {
     // N > 0 must be true.  360 % N == 0 should be true for the GUI to look decent.
-    private static int N = 5;
+    private static final int N = 5;
 
     /**
      * The capacity of the main water tank. This is somewhat arbitrary, but each
@@ -63,10 +63,6 @@ public class Main
             pumpThreads.add(new Thread(pumps.get(i)));
         }
 
-        for (Pump p : pumps) {
-            p.printPowerSupplies();
-        }
-
         // Create and show the GUI.
         frame = new JFrame( "PEX 2" );
         frame.setResizable( false );
@@ -92,36 +88,39 @@ public class Main
      */
     public void run()
     {
+        try {
+            // Wait until the GUI is set up before starting the simulation
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // Start of simulation
         long startTime = System.nanoTime();
+
         System.out.println("Starting all pumps...");
         for (Thread pump : pumpThreads) {
             pump.start();
         }
-        // Run until the tank is full, re-painting the GUI frequently.
-        while( true )
-        {
-//      try {
-//          Thread.sleep(3000);
-//          System.out.println("MAIN THREAD: Current Water Level in Main is : " + Integer.toString(currentWaterLevel.get()));
-//      } catch (InterruptedException e) {
-//          e.printStackTrace();
-//      }
-            if (currentWaterLevel.get() > CAPACITY) {
-                System.out.println("Water tank has reached Capacity!");
-                break;
-            }
 
+        // Run until the tank is full, re-painting the GUI frequently.
+        while( currentWaterLevel.get() < CAPACITY )
+        {
             panel.repaint();
         }
-        long stopTime = System.nanoTime();
 
-        for (int i = 0; i < N; i++) {
+        long stopTime = System.nanoTime();
+        System.out.println("Water tank has reached Capacity!");
+
+        // Wait for the threads to finish and display their statistics
+        for (Thread pump : pumpThreads) {
             try {
-                pumpThreads.get(i).join();
+                pump.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        // Repaint a final time to reset GUI
+        panel.repaint();
 
         // Make the output look pretty.
         java.text.NumberFormat nf = java.text.NumberFormat.getInstance();
@@ -211,9 +210,9 @@ public class Main
                 g2.draw( rightPowerCord );
                 // Draw the inner part of the power cord to show on/off.
                 g2.setStroke( stroke4 );
-                g2.setColor( powerSupplies.get(i).getPowerColor("left") );   // **** Set color based on the pumps/power supplies, as appropriate! ****
+                g2.setColor( pumps.get(i).getLeftPowerColor() );   // **** Set color based on the pumps/power supplies, as appropriate! ****
                 g2.draw( leftPowerCord );
-                g2.setColor( powerSupplies.get(i).getPowerColor("right") );   // **** Set color based on the pumps/power supplies, as appropriate! ****
+                g2.setColor( pumps.get(i).getRightPowerColor() );   // **** Set color based on the pumps/power supplies, as appropriate! ****
                 g2.draw( rightPowerCord );
 
                 // The pipe from the pump to the tank.
