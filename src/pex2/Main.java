@@ -20,7 +20,7 @@ import javax.swing.JPanel;
 public class Main
 {
     // N > 0 must be true.  360 % N == 0 should be true for the GUI to look decent.
-    private static final int N = 5;
+    private static final int N = 10;
 
     /**
      * The capacity of the main water tank. This is somewhat arbitrary, but each
